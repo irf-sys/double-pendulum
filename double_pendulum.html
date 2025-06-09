@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Double Pendulum Simulation</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #f0f0f0; }
+        canvas { display: block; margin: auto; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <canvas id="pendulumCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('pendulumCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Pendulum parameters
+        let r1 = 150; // Length of the first pendulum arm
+        let r2 = 150; // Length of the second pendulum arm
+        let m1 = 10;  // Mass of the first pendulum bob
+        let m2 = 10;  // Mass of the second pendulum bob
+        let a1 = Math.PI / 2; // Initial angle of the first pendulum (radians)
+        let a2 = Math.PI / 2; // Initial angle of the second pendulum (radians)
+        let a1_v = 0; // Initial angular velocity of the first pendulum
+        let a2_v = 0; // Initial angular velocity of the second pendulum
+        const g = 1;  // Gravity
+
+        // Origin of the pendulum
+        const originX = canvas.width / 2;
+        const originY = canvas.height / 4; // Start higher up
+
+        let px2 = -1; // Previous x position of the second bob for tracing
+        let py2 = -1; // Previous y position of the second bob for tracing
+
+        let trace = []; // Array to store trace points
+
+        function drawPendulum() {
+            // Clear the canvas or draw a semi-transparent rectangle for fading trace
+            ctx.fillStyle = 'rgba(240, 240, 240, 0.1)'; // Semi-transparent fade
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // ctx.clearRect(0, 0, canvas.width, canvas.height); // For no trace fading
+
+            // Calculate positions of the pendulum bobs
+            const x1 = originX + r1 * Math.sin(a1);
+            const y1 = originY + r1 * Math.cos(a1);
+            const x2 = x1 + r2 * Math.sin(a2);
+            const y2 = y1 + r2 * Math.cos(a2);
+
+            // Draw the arms
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(originX, originY);
+            ctx.lineTo(x1, y1);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+
+            // Draw the bobs
+            ctx.fillStyle = '#666';
+            ctx.beginPath();
+            ctx.arc(originX, originY, 8, 0, Math.PI * 2); // Fixed pivot point
+            ctx.fill();
+
+            ctx.fillStyle = '#007bff'; // Blue bob
+            ctx.beginPath();
+            ctx.arc(x1, y1, m1, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#dc3545'; // Red bob
+            ctx.beginPath();
+            ctx.arc(x2, y2, m2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw the trace of the second bob
+            if (px2 > -1) {
+                trace.push({ x: x2, y: y2 });
+            }
+
+            ctx.strokeStyle = '#000'; // Black trace
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            if (trace.length > 0) {
+                 ctx.moveTo(trace[0].x, trace[0].y);
+                 for (let i = 1; i < trace.length; i++) {
+                     ctx.lineTo(trace[i].x, trace[i].y);
+                 }
+            }
+            ctx.stroke();
+
+            // Keep trace length reasonable
+            if (trace.length > 500) { // Adjust trace length as needed
+                 trace.shift();
+            }
+
+            px2 = x2;
+            py2 = y2;
+        }
+
+        function updatePendulum() {
+            // Equations of motion for a double pendulum
+            // These are derived from Lagrange's equations or Newton's laws
+            // and are non-trivial. This is a simplified implementation.
+
+            const num1 = -g * (2 * m1 + m2) * Math.sin(a1);
+            const num2 = -m2 * g * Math.sin(a1 - 2 * a2);
+            const num3 = -2 * Math.sin(a1 - a2) * m2;
+            const num4 = (a2_v * a2_v * r2) + (a1_v * a1_v * r1 * Math.cos(a1 - a2));
+            const den1 = r1 * (2 * m1 + m2 - m2 * Math.cos(2 * a1 - 2 * a2));
+            const a1_a = (num1 + num2 + num3 * num4) / den1;
+
+            const num5 = 2 * Math.sin(a1 - a2);
+            const num6 = (a1_v * a1_v * r1 * (m1 + m2));
+            const num7 = g * (m1 + m2) * Math.cos(a1);
+            const num8 = a2_v * a2_v * r2 * m2 * Math.cos(a1 - a2);
+            const den2 = r2 * (2 * m1 + m2 - m2 * Math.cos(2 * a1 - 2 * a2));
+            const a2_a = (num5 * (num6 + num7 + num8)) / den2;
+
+
+            a1_v += a1_a;
+            a2_v += a2_a;
+            a1 += a1_v;
+            a2 += a2_v;
+
+            // Dampening (optional, helps prevent energy from increasing due to numerical errors)
+            // a1_v *= 0.99;
+            // a2_v *= 0.99;
+        }
+
+        function animate() {
+            updatePendulum();
+            drawPendulum();
+            requestAnimationFrame(animate); // Create the animation loop
+        }
+
+        // Start the animation
+        animate();
+
+        // Handle window resizing
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            // Adjust origin if needed
+            // originX = canvas.width / 2;
+            // originY = canvas.height / 4;
+            // trace = []; // Clear trace on resize
+        });
+
+    </script>
+</body>
+</html>
